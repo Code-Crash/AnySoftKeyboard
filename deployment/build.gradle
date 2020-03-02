@@ -1,0 +1,54 @@
+import deployment.DeploymentRequestProcessTask
+
+import java.time.DayOfWeek
+import java.time.Instant
+
+apply plugin: 'anysoftkeyboard-deployment'
+
+deployments {
+    imeMaster {
+        environmentSteps = ['alpha_100', 'beta_100']
+    }
+    imeProduction {
+        environmentSteps = ['production_010', 'production_020', 'production_030', 'production_040', 'production_050', 'production_075', 'production_100']
+    }
+    addOns {
+        environmentSteps = ['beta_100', 'production_050', 'production_100']
+    }
+}
+
+// start - IME
+TaskProvider<DeploymentRequestProcessTask> imeDeployRequest = tasks.named("deploymentRequest_imeMaster")
+tasks.register("imeOnMasterPush").configure {
+    imeDeployRequest.configure {
+        it.stepIndex = 0;
+    }
+    it.dependsOn imeDeployRequest
+}
+
+tasks.register("imePromoteMaster").configure {
+    //promoting ime only on Wednesday
+    it.enabled Instant.now().toCalendar().toDayOfWeek() == DayOfWeek.WEDNESDAY
+    imeDeployRequest.configure {
+        it.stepIndex = 1;
+    }
+    it.dependsOn imeDeployRequest
+}
+// end - IME
+
+// start - addons
+TaskProvider<DeploymentRequestProcessTask> addOnDeployRequest = tasks.named("deploymentRequest_addOns")
+tasks.register("addOnsOnMasterPush").configure {
+    addOnDeployRequest.configure {
+        it.stepIndex = 1;
+    }
+    it.dependsOn addOnDeployRequest
+}
+
+tasks.register("addOnsPromoteMaster").configure {
+    addOnDeployRequest.configure {
+        it.stepIndex = 1;
+    }
+    it.dependsOn addOnDeployRequest
+}
+// end - addons
